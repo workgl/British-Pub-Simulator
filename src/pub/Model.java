@@ -90,6 +90,8 @@ public final class Model {
         public int level = 1;
         public double[] price = Data.DPRICE.clone();
         public int[] stock = {60, 50, 40, 20, 24, 30, 40, 40, 20};
+        public int[] autoTarget = {80, 60, 50, 30, 30, 40, 50, 40, 25};
+        public boolean autoStock = true;
         public List<Delivery> deliveries = new ArrayList<>();
         public int openH = 11, closeH = 23;
         public List<Npc> npcs = new ArrayList<>(); public List<Staff> staff = new ArrayList<>(), applicants = new ArrayList<>();

@@ -85,7 +85,8 @@ public final class Screens {
 
     static JComponent stock(Runnable rf) {
         JPanel list = vbox();
-        JPanel head = hrow(ink("Product", 12, true), Box.createHorizontalStrut(110), ink("Stock", 12, true), Box.createHorizontalStrut(30), ink("Price", 12, true)); list.add(head);
+        JCheckBox auto = new JCheckBox("Auto-reorder each morning up to the target level (only when there's cash to spare)", S.autoStock); auto.setOpaque(false); auto.setFont(sans(13, true)); auto.addActionListener(e -> S.autoStock = auto.isSelected()); list.add(auto);
+        JPanel head = hrow(ink("Product", 12, true), Box.createHorizontalStrut(110), ink("Stock", 12, true), Box.createHorizontalStrut(30), ink("Price", 12, true), Box.createHorizontalStrut(180), ink("Auto-target", 12, true)); list.add(head);
         for (int i = 0; i < Data.DRINKS.length; i++) {
             final int k = i; String nm = Data.DNAME[i] + (i == 8 ? " (ingredients)" : "");
             JLabel n = ink(nm, 13, true); n.setPreferredSize(new Dimension(150, 24));
@@ -95,10 +96,11 @@ public final class Screens {
             sp.addChangeListener(e -> { S.price[k] = ((Number) sp.getValue()).doubleValue(); });
             JLabel mg = ink(String.format("cost %s · fair %s", Util.money(Mgmt.unitCost(i)), Util.money(Data.DPRICE[i])), 11, false); mg.setPreferredSize(new Dimension(160, 24));
             JPanel row = hrow(n, st, sp, mg);
+            JSpinner tg = new JSpinner(new SpinnerNumberModel(S.autoTarget[i], 0, 400, 10)); tg.setPreferredSize(new Dimension(64, 24)); tg.addChangeListener(e -> S.autoTarget[k] = (Integer) tg.getValue()); row.add(tg);
             for (int q : new int[]{10, 25, 50}) row.add(sbtn("+" + q + " (" + Util.money0(Mgmt.unitCost(i) * q) + ")", () -> { if (Mgmt.order(k, q)) rf.run(); }));
             list.add(row);
         }
-        list.add(new JLabel(" ")); list.add(ink("<html><body style='width:760px'>Orders placed before 17:00 arrive at 08:00 tomorrow (a day later if you order late). Prices far above the 'fair' price make customers grumble, walk out or defect to the Frog & Trumpet. Cheap pints make friends — and lose money.</body></html>", 12, false));
+        list.add(new JLabel(" ")); list.add(ink("<html><body style='width:620px'>Orders arrive at the next 08:00 (order before 08:00 and they arrive that morning). Prices far above the 'fair' price make customers grumble, walk out or defect to the Frog & Trumpet. Cheap pints make friends — and lose money.</body></html>", 12, false));
         return scroll(list);
     }
 

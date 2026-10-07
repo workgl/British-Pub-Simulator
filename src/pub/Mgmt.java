@@ -124,6 +124,8 @@ public final class Mgmt {
             else { s.x = 480; s.y = 590; }
             if (s.tags.equals("Always late") && s.present && Util.chance(.4)) { s.present = false; log(s.name + " is running late. Very late.", "staff"); }
         }
+        StringBuilder low = new StringBuilder(); for (int i = 0; i < 7; i++) if (S.stock[i] < 12) low.append(Data.DNAME[i]).append(" (").append(S.stock[i]).append(") ");
+        if (low.length() > 0) L.alert("Running low: " + low + "- order stock in Manage (M)!");
         if (staffByRole("bartender") == null && staffByRole("manager") == null) L.alert("Nobody on the bar today — you'll have to serve!");
         String sp = Events.specialDay(); if (!sp.isEmpty()) { log("Tonight is " + sp + "! Expect a crowd.", "event"); news(sp.toUpperCase() + " IN WESTBRIDGE", "Pubs across town expect a busy night. The Speckled Pigeon is ready, ish."); }
         if (S.quizOn && dow() == 2) log("Quiz night tonight at 20:00.", "event");
@@ -200,6 +202,20 @@ public final class Mgmt {
         S.tvFixAt = S.tvBroken ? S.day : -1;
         if (S.tvBroken && Util.chance(.5)) S.tvBroken = false;
         S.powerCut = false; S.pigeonHere = false; Ai.games.clear();
+        autoRestock();
+    }
+
+    static void autoRestock() {
+        if (!S.autoStock) return;
+        double buffer = 250; int placed = 0;
+        for (int i = 0; i < S.autoTarget.length; i++) {
+            int t = S.autoTarget[i]; if (t <= 0) continue;
+            int pending = 0; for (Delivery d : S.deliveries) if (d.item == i) pending += d.qty;
+            int need = t - S.stock[i] - pending; if (need < 10) continue;
+            need = Math.min(need, stockCap() - S.stock[i] - pending);
+            if (need >= 10 && S.money - unitCost(i) * need > buffer && order(i, need)) placed++;
+        }
+        if (placed > 0) log("Auto-restock: ordered " + placed + " product" + (placed > 1 ? "s" : "") + " for delivery at 08:00.", "sys");
     }
 
     // ================= stock =================
@@ -211,7 +227,7 @@ public final class Mgmt {
         if (S.stock[item] + pending + qty > stockCap()) { toast("That's more than the cellar can hold."); return false; }
         if (S.money < cost) { toast("Not enough money."); return false; }
         spend(cost);
-        Delivery d = new Delivery(); d.item = item; d.qty = qty; d.arrives = S.day + (S.min < 17 * 60 ? 1 : 2) + (S.deliveryLate ? 1 : 0); S.deliveries.add(d);
+        Delivery d = new Delivery(); d.item = item; d.qty = qty; d.arrives = ((S.min >= 300 && S.min < 480) ? S.day : S.day + 1) + (S.deliveryLate && S.min < 480 ? 1 : 0); S.deliveries.add(d);
         sfx("coin"); return true;
     }
     static void deliveries() {
