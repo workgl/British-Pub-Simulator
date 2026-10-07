@@ -324,6 +324,29 @@ public final class Screens {
         JScrollPane sp = scroll(list); sp.setPreferredSize(new Dimension(560, 380)); return sp;
     }
 
+
+    // ================================================================
+    //  NOTICE BOARD
+    // ================================================================
+    public static JComponent notice() {
+        JPanel p = vbox(); p.add(inkSerif("What's on at " + S.pubName, 20)); p.add(new JLabel(" "));
+        for (int i = 0; i < 8; i++) {
+            int d = S.day + i; List<String> items = new ArrayList<>();
+            if (S.quizOn && Sim.dow(d) == 2) items.add("Pub Quiz, 20:00");
+            if (S.roastOn && Sim.dow(d) == 6) items.add("Sunday Roast, 12:00-16:00");
+            if (Sim.dow(d) == 4) items.add("Friday night - expect a crowd");
+            for (Match m : S.fixtures) if (m.day == d) items.add(Util.hhmm(m.kickoff) + " " + Data.TEAM_SHORT[m.home] + " v " + Data.TEAM_SHORT[m.away] + (m.rovers ? "  *** ROVERS ***" : ""));
+            for (Booking b : S.bookings) if (b.day == d) items.add(b.type.toUpperCase() + " NIGHT (booked)");
+            String sp = Events.specialDay(d); if (!sp.isEmpty()) items.add(sp.toUpperCase());
+            for (Delivery dv : S.deliveries) if (dv.arrives == d) items.add("Delivery: " + dv.qty + " x " + Data.DNAME[dv.item]);
+            String head = (i == 0 ? "Today" : i == 1 ? "Tomorrow" : Sim.dayName(d)) + " (day " + d + ")";
+            JLabel hl = ink(head, 14, true); p.add(hl);
+            if (items.isEmpty()) p.add(ink("   Nothing special.", 12, false)); else for (String it : items) p.add(ink("   - " + it, 12, false));
+        }
+        p.add(new JLabel(" ")); p.add(hrow(btn("Book events & advertising", () -> { GameWindow.close(); GameWindow.open("Manage the pub", manage(4)); })));
+        JScrollPane sp = scroll(p); sp.setPreferredSize(new Dimension(620, 480)); return sp;
+    }
+
     // ================================================================
     //  MENU / HELP / DAY SUMMARY
     // ================================================================

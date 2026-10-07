@@ -95,7 +95,7 @@ public final class GameWindow extends JFrame {
     }
     void showChoice(Sim.Choice c) {
         JPanel p = vbox(); p.setPreferredSize(new Dimension(560, 60 + c.opts.size() * 46 + 100));
-        JLabel tx = new JLabel("<html><body style='width:520px;font-family:Georgia;font-size:14px'>" + esc(c.text) + "</body></html>"); tx.setForeground(INK); p.add(tx); p.add(Box.createVerticalStrut(14));
+        JLabel tx = new JLabel("<html><body style='width:440px;font-family:Georgia;font-size:11px;font-weight:normal'>" + esc(c.text) + "</body></html>"); tx.setForeground(INK); p.add(tx); p.add(Box.createVerticalStrut(14));
         for (Sim.Opt o : c.opts) {
             BrassButton b = btn(o.label, () -> { glass.setVisible(false); glass.removeAll(); overlayOpen = false; choiceShowing = false; Events.modalOpen = false; try { o.run.run(); } catch (RuntimeException ex) { ex.printStackTrace(); } pump(); });
             b.setAlignmentX(Component.LEFT_ALIGNMENT); b.setMaximumSize(new Dimension(520, 38)); if (!o.hint.isEmpty()) b.setToolTipText(o.hint); p.add(b); p.add(Box.createVerticalStrut(6));
@@ -263,7 +263,7 @@ public final class GameWindow extends JFrame {
         boolean hotspot(Gfx.Hot h) {
             switch (h.id()) {
                 case "tv" -> { open("Football", Screens.football()); return true; }
-                case "notice" -> { open("Manage the pub", Screens.manage(4)); return true; }
+                case "notice" -> { open("Notice board", Screens.notice()); return true; }
                 case "darts" -> { if (!S.upgrades.contains("darts")) return false; Player.walkTo(Nav.OCHE[0] - 20, Nav.OCHE[1], () -> open("Darts", Screens.pickOpponent("darts"))); return true; }
                 case "pool" -> { Player.walkTo(Nav.POOL[4][0] - 10, Nav.POOL[4][1], () -> open("Pool", Screens.pickOpponent("pool"))); return true; }
                 case "juke" -> { Player.walkTo(Nav.JUKE[0], Nav.JUKE[1], () -> open("Jukebox", Screens.jukebox())); return true; }

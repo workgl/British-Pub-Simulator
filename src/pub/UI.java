@@ -70,7 +70,7 @@ public final class UI {
     public static JScrollPane scroll(Component c) {
         JScrollPane s = new JScrollPane(c); s.setBorder(BorderFactory.createEmptyBorder()); s.getViewport().setOpaque(false); s.setOpaque(false); s.getVerticalScrollBar().setUnitIncrement(16); return s;
     }
-    public static JPanel vbox() { JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setOpaque(false); return p; }
+    public static JPanel vbox() { JPanel p = new JPanel() { @Override public Component add(Component c) { if (c instanceof JComponent j) j.setAlignmentX(LEFT_ALIGNMENT); return super.add(c); } }; p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setOpaque(false); return p; }
     public static JPanel row() { JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3)); p.setOpaque(false); return p; }
 
     public static class Bar extends JComponent {

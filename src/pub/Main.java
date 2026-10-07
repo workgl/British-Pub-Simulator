@@ -13,6 +13,7 @@ public final class Main {
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--shot")) shot = args[++i]; else if (args[i].equals("--day")) day = Integer.parseInt(args[++i]); else if (args[i].equals("--hour")) hour = Integer.parseInt(args[++i]); else if (args[i].equals("--screen")) screen = args[++i]; else if (args[i].equals("--soak")) soak = Integer.parseInt(args[++i]);
         }
+        if (shot != null || soak > 0) Save.disabled = true;
         final String shotF = shot, screenF = screen; final int soakF = soak; final int dayF = day, hourF = hour;
         SwingUtilities.invokeAndWait(() -> {
             if (soakF > 0) { Soak.run(soakF); return; }
@@ -40,6 +41,9 @@ public final class Main {
                 case "juke" -> GameWindow.open("Jukebox", Screens.jukebox());
                 case "football" -> GameWindow.open("Football", Screens.football());
                 case "title" -> w.showTitle();
+                case "fight" -> Events.nearFight(Sim.npc("dave"), Sim.npc("gaz"), "football");
+                case "notice" -> GameWindow.open("Notice board", Screens.notice());
+                case "talk" -> { Model.Npc t = Sim.npc("linda"); t.inPub = true; Player.x = t.x; Player.y = t.y; Player.act("linda", "talk"); }
                 case "day" -> GameWindow.open("Closing time", Screens.daySummary(Sim.S.history.isEmpty() ? new Model.DayRec() : Sim.S.history.get(Sim.S.history.size() - 1)));
                 default -> {}
             }

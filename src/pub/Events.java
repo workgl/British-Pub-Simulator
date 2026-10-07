@@ -476,8 +476,9 @@ public final class Events {
     }
 
     // ---------- special days ----------
-    public static String specialDay() {
-        int m = Sim.monthIdx(), d = (S.day - 1) % 28 + 1;
+    public static String specialDay() { return specialDay(S.day); }
+    public static String specialDay(int day) {
+        int m = ((day - 1) / 28) % 12, d = (day - 1) % 28 + 1;
         if (m == 1 && d == 28) return "Halloween"; if (m == 2 && d == 5) return "Bonfire Night"; if (m == 3 && d == 24) return "Christmas Eve"; if (m == 3 && d == 28) return "New Year's Eve";
         if (m == 5 && d == 14) return "Valentine's Day"; if (m == 7 && d == 23) return "St George's Day"; return "";
     }

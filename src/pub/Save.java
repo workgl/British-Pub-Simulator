@@ -11,8 +11,10 @@ public final class Save {
     public static Path file(int slot) { return DIR.resolve("save" + slot + ".dat"); }
     public static boolean exists(int slot) { return Files.exists(file(slot)); }
 
+    public static boolean disabled;
+
     public static boolean save(int slot) {
-        if (Sim.S == null) return false;
+        if (Sim.S == null || disabled) return false;
         try {
             Files.createDirectories(DIR);
             Path tmp = DIR.resolve("save" + slot + ".tmp");

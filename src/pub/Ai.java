@@ -110,7 +110,8 @@ public final class Ai {
         for (Npc n : S.npcs) if (!n.inPub && n.planGo && n.planVenue.equals("pub") && S.min == n.planAt) { n.planGo = false; enterPub(n); }
         if (Util.chance(strangerRate())) {
             if (crowd() >= capacity()) { stat("turnedAway"); return; }
-            Npc s = Chars.stranger(); Chars.fillDefaults(s);
+            Set<String> used = new HashSet<>(); for (Npc o : S.npcs) used.add(o.name.split(" ")[0]);
+            Npc s = Chars.stranger(used); Chars.fillDefaults(s);
             s.loyalty = 40; s.lastVisit = S.day; s.planStay = Util.ri(1, 3);
             S.npcs.add(s); byId.put(s.id, s);
             enterPub(s);
@@ -129,12 +130,17 @@ public final class Ai {
         Match m = S.match;
         if (m != null && !m.phase.equals("ft") && fanOf(n)) n.stayUntil = Math.max(n.stayUntil, S.min + (m.phase.equals("pre") ? 120 : 60));
         n.stayUntil = Math.max(n.stayUntil, S.min + 40);
+        double hh = hour();
+        if (hh >= 11.5 && hh < 14.8) n.hunger = Math.max(n.hunger, 55 + (dow() == 6 && S.roastOn ? 25 : 0) + Util.r(0, 20));
+        else if (hh >= 17.3 && hh < 20) n.hunger = Math.max(n.hunger, 45 + Util.r(0, 25));
         sfx("door");
         if (n.stranger) { if (Util.chance(.5)) say(n, Util.pick("Evening. What's good here?", "Nice place. Bit... cosy.", "Is that a pigeon on your sign?")); }
         else {
             // greeting
             String line = Util.pick("Evening all!", "Alright, landlord!", "Usual please!", "Is that Wayne on the pumps? Lord help us.", "Packed in here tonight!");
-            if (crowd() < 5) line = Util.pick("Quiet in here...", "Where is everybody?", "Just us, then.");
+            if (crowd() < 4 && Util.chance(.3)) line = Util.pick("Quiet in here...", "Where is everybody?", "Just us, then.");
+            Mem pm = null; for (Mem mm : n.mem) if ("player".equals(mm.who) && Math.abs(mm.w) >= 2 && S.day - mm.day <= 10) { pm = mm; break; }
+            if (pm != null && Util.chance(.5)) line = pm.w > 0 ? Util.pick("Still thinking about that kindness, landlord!", "Evening, landlord. I haven't forgotten the other day — thanks.") : Util.pick("Evening, landlord. I haven't forgotten, you know.", "Hmph. Landlord.");
             say(n, line, 3.5);
             if (S.min % 7 == 0) log(n.name + " arrives" + (n.visits > 40 ? " (regular)" : "") + ".", "arrive");
         }
@@ -229,6 +235,12 @@ public final class Ai {
         if (n.timer > 0) n.timer -= 1;
         if (n.timer <= 0) { finishState(n); }
         else if (n.st.equals("sit") || n.st.equals("stand")) {
+            Staff wt = staffByRole("waiter");
+            if (wt != null && n.st.equals("sit") && n.order == null && !n.flags.containsKey("tbl") && wantsDrink(n) && Util.chance(.3)) {
+                int d = chooseDrink(n);
+                if (d >= 0 && n.money >= S.price[d]) { Order o = new Order(); o.drink = d; o.since = S.min; n.order = o; n.flags.put("tbl", "" + (S.min + Util.ri(2, 5))); n.doing = "Waiting for the waiter"; }
+            }
+            if (n.flags.containsKey("tbl") && S.min >= Integer.parseInt(n.flags.get("tbl")) && n.order != null) { n.flags.remove("tbl"); Staff w2 = staffByRole("waiter"); serve(n, w2); return; }
             if (wantsLeave(n) && Util.chance(.2)) goLeave(n);
             else if (n.glass < 0 && wantsDrink(n) && Util.chance(.25)) goBar(n);
         }
@@ -430,7 +442,7 @@ public final class Ai {
         if (o.food) {
             S.totalMeals += q; stat("meals", q);
             Staff chef = staffByRole("chef"); int sk = chef == null ? 3 : chef.skill;
-            n.foodT = Math.max(6, 22 - sk); n.nextDur = 0; n.exp += 2;
+            n.foodT = Math.max(5, 22 - sk - (hasStaff("waiter") ? 3 : 0) - (S.upgrades.contains("kitchen2") ? 4 : 0)); n.nextDur = 0; n.exp += 2;
             if (chef != null && Util.chance(Math.max(0, 6 - sk) * .06)) { n.exp -= 10; n.mood -= 8; stat("badMeals"); n.flags.put("badMeal", "1"); }
         } else {
             n.glass = d; n.glassLevel = 1; n.thirst = Math.max(0, n.thirst - 45); n.drinksToday++;
@@ -448,6 +460,7 @@ public final class Ai {
         finishServe(n);
     }
     static void finishServe(Npc n) {
+        if (n.st.equals("sit")) { n.doing = ""; return; }
         n.st = "idle"; n.timer = 0; n.doing = "";
         decide(n);
     }
@@ -467,7 +480,7 @@ public final class Ai {
         n.doing = "Playing " + kind + " vs " + first(b); b.doing = "Playing " + kind + " vs " + first(n);
         say(n, Util.pick("Fancy a game, " + first(b) + "?", "Rack 'em up!", "Loser buys.")); say(b, Util.pick("You're on.", "Prepare to be destroyed.", "Easy money."), 5);
         if (kind.equals("pool")) { addMoney(1); sfx("coin"); }
-        log(first(n) + " challenges " + first(b) + " at " + kind + ".", "game");
+        if (!n.stranger || !b.stranger) log(first(n) + " challenges " + first(b) + " at " + kind + ".", "game");
     }
 
     static void endGame(Npc n) {
@@ -484,7 +497,7 @@ public final class Ai {
             remember(w, "game", 1, l.id, l.id, w.name + " beat " + l.name + " at " + g.kind);
             remember(l, "game", -1, w.id, w.id, l.name + " lost at " + g.kind + " to " + w.name);
             if (g.kind.equals("darts") && (w.id.equals("sarah") && g.b.darts < 6 || g.a.id.equals("sarah") && g.b.darts < 6)) { /* hidden talent hint */ if (w.id.equals("sarah") && Util.chance(.35)) say(w, "Oh... was that good? Beginner's luck."); }
-            log(w.name + " beat " + l.name + " at " + g.kind + ".", "game"); stat("npcGames");
+            if (!w.stranger || !l.stranger) log(w.name + " beat " + l.name + " at " + g.kind + ".", "game"); stat("npcGames");
             Social.gameAftermath(w, l, g.kind);
             decide(g.a); decide(g.b);
             return;
@@ -506,6 +519,7 @@ public final class Ai {
     static void goLeave(Npc n) {
         if (n.st.equals("leave")) return;
         if (n.order != null) { S.queue.remove(n.id); n.order = null; }
+        n.flags.remove("tbl");
         endGameFor(n);
         n.conv = ""; n.doing = "Heading out";
         goTo(n, Nav.DOOR[0], Nav.DOOR[1] + 10, "leave", 0);

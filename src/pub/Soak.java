@@ -27,8 +27,9 @@ final class Soak {
                 Events.modalOpen = false;
             } catch (Throwable t) { if (errors++ < 10) { System.out.println("ERROR at day " + Sim.S.day + " " + Util.hhmm(Sim.S.min)); t.printStackTrace(System.out); } }
         }
-        Save.save(9); System.out.println("save ok: " + Save.load(9) + "  | ms=" + (System.currentTimeMillis() - t0) + " errors=" + errors + " day=" + Sim.S.day + " money=" + (int) Sim.S.money + " rep=" + (int) Sim.S.rep);
+        Save.disabled = false; Save.save(9); System.out.println("save ok: " + Save.load(9) + "  | ms=" + (System.currentTimeMillis() - t0) + " errors=" + errors + " day=" + Sim.S.day + " money=" + (int) Sim.S.money + " rep=" + (int) Sim.S.rep);
         System.out.println("stats=" + Sim.S.stats);
+        try { java.nio.file.Files.deleteIfExists(Save.file(9)); } catch (Exception e) { }
         System.exit(errors > 0 ? 1 : 0);
     }
 }

@@ -155,7 +155,8 @@ public final class Player {
             c.opts.add(new Opt("Brush it off", () -> { n.trust -= 4; n.anger += 8; Sim.say(n, "...Right."); }));
             Sim.ask(c); return;
         }
-        if (n.wantsJob && n.trust > -15 && !n.staff && S.staff.size() < 8) {
+        if (n.wantsJob && n.trust > -15 && !n.staff && S.staff.size() < 8 && S.day - Integer.parseInt(n.flags.getOrDefault("jobAsked", "-9")) >= 3) {
+            n.flags.put("jobAsked", "" + S.day);
             c = new Choice(n.name, "\"Landlord... I don't suppose you're hiring? I'm skint, and I'm a quick learner. I've watched a LOT of bartending videos.\"");
             c.opts.add(new Opt("Hire them as a bartender", () -> hireNpc(n, "bartender")));
             c.opts.add(new Opt("Hire them as a waiter", () -> hireNpc(n, "waiter")));

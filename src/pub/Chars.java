@@ -108,8 +108,10 @@ public final class Chars {
     private static int[] SKINS = {0xF1C27D, 0xE0AC8C, 0xC68642, 0x8D5524, 0xB07A4F, 0xF5D0B0};
     private static int[] HAIRS = {0x222222, 0x5A3A1A, 0x8B5A2B, 0xB0A090, 0xD4A94A, 0x777777, 0x7B3F00};
 
-    public static Npc stranger() {
-        String fn = Util.pick(Data.STRANGER_FIRST), ln = Util.pick(Data.STRANGER_LAST);
+    public static Npc stranger() { return stranger(new HashSet<>()); }
+    public static Npc stranger(Set<String> used) {
+        String fn = Util.pick(Data.STRANGER_FIRST); for (int i = 0; i < 20 && used.contains(fn); i++) fn = Util.pick(Data.STRANGER_FIRST);
+        String ln = Util.pick(Data.STRANGER_LAST);
         Npc n = mk("s" + Util.ri(1000, 99999), fn + " " + ln, Util.ri(19, 74), Util.chance(.5) ? "m" : "f", Util.pick(Data.STRANGER_JOB), "A newcomer to the pub.", Util.pick(Data.DRINKS[0], Data.DRINKS[1], Data.DRINKS[2], Data.DRINKS[4], Data.DRINKS[5], Data.DRINKS[0], Data.DRINKS[6]), "", Util.chance(.55) ? Util.pick(Data.TEAM_ID) : "");
         n.stranger = true;
         t(n, Util.r(.3, .9), Util.r(.1, .7), Util.r(.3, .8), Util.r(.2, .7), Util.r(.1, .7), Util.r(.3, .9), Util.r(.3, .9), Util.r(.1, .9), Util.r(.3, .9));

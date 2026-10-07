@@ -99,6 +99,7 @@ public final class Social {
         double r = Util.R.nextDouble();
         if (r < .04 + .0008 * (sp.drunk + li.drunk)) { mishear(sp, li); return; }
         if (r < .13 && !S.jokes.isEmpty()) { jokeCallback(sp, li); return; }
+        if (r < .24 && memoryCallback(sp, li)) return;
         if (sp.gos > .45 && r < .13 + .3 * sp.gos && gossip(sp, li, c)) return;
         if (r < .5 && Util.chance(.3)) { story(sp, li, c); return; }
         statement(c, sp, li);
@@ -127,7 +128,8 @@ public final class Social {
         if (topic.equals("pub")) o = Util.clamp((sp.exp / 18.0) + (S.clean - 55) / 60.0 - (S.price[0] > 5.4 ? .6 : 0), -1, 1);
         if (topic.equals("weather")) o = S.weather == 0 ? .8 : S.weather == 1 ? 0 : -.8;
         String[][] bank = Data.TOPICS.get(topic);
-        String line = Util.pick(bank[o > .25 ? 0 : o < -.25 ? 1 : 2]);
+        String[] spc = Data.special(sp.id, topic);
+        String line = spc != null && Util.chance(.6) ? Util.pick(spc) : Util.pick(bank[o > .25 ? 0 : o < -.25 ? 1 : 2]);
         line = Util.fill(line, "team", ts(sp), "other", first(li));
         if (switched && Util.chance(.5)) line = Util.pick(Data.CHANGE_TOPIC) + " " + line;
         speak(sp, line);
@@ -243,6 +245,22 @@ public final class Social {
         stat("misunderstandings");
         String k = "misheard:" + pair(sp.id, li.id); int cnt = Integer.parseInt(S.flags.getOrDefault(k, "0")) + 1; S.flags.put(k, "" + cnt);
         if (cnt == 2) Mgmt.addJoke(first(li) + "'s selective hearing", li.id, sp.id);
+    }
+
+    static boolean memoryCallback(Npc sp, Npc li) {
+        Mem pick = null;
+        for (Mem m : sp.mem) if (li.id.equals(m.who) && !sp.id.equals(m.who) && S.day - m.day <= 14 && Math.abs(m.w) >= 2 && !m.kind.equals("saw")) { pick = m; break; }
+        if (pick == null) return false;
+        String when = Sim.dayName(pick.day), n = first(li);
+        switch (pick.kind) {
+            case "argument", "fight" -> { speak(sp, Util.pick("I haven't forgotten our row on " + when + ", " + n + ".", "Still sore about " + when + ", " + n + ". Just saying.")); sp.anger += 4; addRel(sp.id, li.id, -.8);
+                speak(li, Util.pick("Oh, give it a rest.", "That was days ago!", "...Fair. I overreacted.")); if (Util.chance(.3)) { addRelBoth(sp.id, li.id, 2); speak(sp, "Pint to forget it?"); } }
+            case "laugh" -> { speak(sp, "Still laughing about " + when + ", " + n + "."); speak(li, Util.pick("Ha! Classic.", "Don't start me off.")); addRelBoth(sp.id, li.id, 1.5); sp.mood += 3; }
+            case "game" -> { speak(sp, "I still want that rematch from " + when + ", " + n + "."); speak(li, Util.pick("Name the time.", "Any day. Bring money.")); addRelBoth(sp.id, li.id, .6); }
+            case "treat" -> { speak(sp, "Thanks again for the drink on " + when + ", " + n + "."); speak(li, Util.pick("Don't mention it.", "You'd do the same.")); addRelBoth(sp.id, li.id, 1.5); }
+            default -> { return false; }
+        }
+        stat("memoryCallbacks"); return true;
     }
 
     static void jokeCallback(Npc sp, Npc li) {
