@@ -125,8 +125,9 @@ public final class Sim {
         Football.planWeek();
         prepareDay(true);
         S.weather = Util.ri(0, 1);
-        S.news.add(new News("NEW LANDLORD TAKES OVER THE SPECKLED PIGEON", "Locals describe the new owner as 'probably fine' and 'not Barry'. The pigeon was unavailable for comment.", 1));
-        S.news.add(new News("WESTBRIDGE ROVERS PREPARE FOR SATURDAY", "Fans optimistic, in the way people are optimistic about parking.", 1));
+        S.archive.add(new News("NEW LANDLORD TAKES OVER THE SPECKLED PIGEON", "Locals describe the new owner as 'probably fine' and 'not Barry'. The pigeon was unavailable for comment.", 1));
+        S.archive.add(new News("WESTBRIDGE ROVERS PREPARE FOR SATURDAY", "Fans optimistic, in the way people are optimistic about parking.", 1));
+        S.archive.add(new News("MYSTERY PIGEON CONTINUES TO VISIT LOCAL PUB", "Residents baffled as bird attends for another week. 'He seems to like the scampi fries,' said one witness.", 1));
         log("Welcome to " + S.pubName + ". Doors open at " + S.openH + ":00. Click the floor to walk, click people to talk.", "sys");
     }
 

@@ -42,9 +42,10 @@ public final class Ai {
         if (n.stranger) p = n.visits > 0 ? 0.22 : 0;
         Match md = matchOfDay();
         boolean fan = md != null && (Data.ti(n.team) == md.home || Data.ti(n.team) == md.away || (n.sport > .75 && md.rovers));
-        if (fan) p += 0.4;
+        if (fan) p += 0.4; else if (md != null && n.sport > .4) p += 0.15;
         if (dw == 2 && S.quizOn && n.intel > .6) p += 0.4;
         if (dw == 4 && n.money > 15) p += .12;
+        if (!Events.specialDay().isEmpty()) p += .25;
         if (n.money < 8) p *= 0.2;
         if (S.weather == 2) p *= .92;
         p *= 0.6 + S.rep / 100.0 * 0.8;
@@ -97,9 +98,10 @@ public final class Ai {
         double r = 0.055 * (S.pop / 40.0) * DOW_MULT[dow()] * hc;
         if (S.weather == 2) r *= .85;
         if (dow() == 6 && S.roastOn && h >= 12 && h < 15) r *= 2.2;
-        Match m = S.match; if (m != null && !m.phase.equals("ft") && S.upgrades.contains("tv")) r *= 1.7;
+        Match m = S.match; if (m != null && !m.phase.equals("ft") && S.upgrades.contains("tv")) r *= (m.rovers ? 2.4 : 1.6) * (S.upgrades.contains("bigscreen") ? 1.25 : 1);
         for (String ad : S.ads.keySet()) if (S.ads.get(ad) >= S.day) r *= 1.15;
         if (S.sat < 40) r *= .6;
+        if (!Events.specialDay().isEmpty()) r *= 1.6;
         return r;
     }
 
@@ -512,7 +514,9 @@ public final class Ai {
         else if (Util.chance(.3)) say(n, Util.pick("Right, I'm off.", "See you tomorrow.", "Better get home.", "Same time next week."));
     }
     static void endGameFor(Npc n) {
-        for (Iterator<Game> it = games.iterator(); it.hasNext(); ) { Game g = it.next(); if (g.a == n || g.b == n) { it.remove(); Npc o = g.a == n ? g.b : g.a; if (o.inPub && (o.st.equals("darts") || o.st.equals("pool"))) { o.timer = 0; decide(o); } } }
+        List<Npc> others = new ArrayList<>();
+        for (Iterator<Game> it = games.iterator(); it.hasNext(); ) { Game g = it.next(); if (g.a == n || g.b == n) { it.remove(); others.add(g.a == n ? g.b : g.a); } }
+        for (Npc o : others) if (o.inPub && (o.st.equals("darts") || o.st.equals("pool"))) { o.timer = 0; decide(o); }
     }
 
     static void exit(Npc n) {
@@ -545,6 +549,10 @@ public final class Ai {
             stat("defections");
         }
         if (n.defected && n.loyalty > 45) { n.defected = false; log(n.name + " is back!", "story"); }
+        if (!n.stranger && n.visits >= 80 && n.loyalty >= 85 && !n.flags.containsKey("lifelong")) {
+            n.flags.put("lifelong", "1"); stat("lifelongs");
+            log(n.name + " has become a lifelong regular.", "story"); news("LIFELONG REGULAR: " + n.name.toUpperCase(), "'I'll be here till they carry me out,' said " + n.name + ". 'Preferably after closing.'");
+        }
     }
 
     // ================= offstage =================

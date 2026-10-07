@@ -61,6 +61,7 @@ public final class Events {
         EVENTS.add(new Ev("thief", () -> !hasUp("cctv") && crowd() >= 12 ? .3 : 0, Events::thief, 20));
         EVENTS.add(new Ev("staffTrouble", () -> S.staff.size() > 0 ? .5 : 0, Events::staffTrouble, 10));
         EVENTS.add(new Ev("mouse", () -> hasUp("kitchen") ? .2 : 0, Events::mouse, 40));
+        EVENTS.add(new Ev("staffTwist", () -> twistCandidate() != null && crowd() >= 5 ? 1.4 : 0, Events::staffTwist, 3));
         EVENTS.add(new Ev("fridayMan", () -> S.fridayMan.isEmpty() && dow() == 4 && S.day > 5 ? 1.5 : 0, Events::fridayManArrives, 999));
     }
 
@@ -448,6 +449,37 @@ public final class Events {
             opt("Pest control (£80)", () -> { spend(80); done("Sorted. Quietly. No news at all."); }),
             opt("Get Wayne to deal with it", () -> { if (Util.chance(.3)) done("Wayne befriends the mouse. It's called Kevin now."); else { rep(-1); S.clean -= 8; done("Chaos. A customer sees. A review is likely."); } }),
             opt("Pretend you didn't see", () -> { S.clean -= 3; done("Out of sight, out of mind."); }));
+    }
+
+    // ---------- staff storylines ----------
+    static Staff twistCandidate() { for (Staff s : S.staff) if (!s.fromNpc.isEmpty() && S.day - s.hiredDay >= 10 && s.present && !S.flags.containsKey("twist:" + s.id)) return s; return null; }
+    static void staffTwist() {
+        Staff s = twistCandidate(); if (s == null) return; S.flags.put("twist:" + s.id, "1");
+        int r = Util.ri(0, 2); String f = s.name.split(" ")[0];
+        if (r == 0) {
+            ask(f + " Has Invented Something", f + " is behind the bar with a shaker and a dangerous look of confidence: \"I've made a cocktail. It's called The Pigeon Drop. Try it.\"",
+                opt("Taste it", () -> { if (Util.chance(.7)) { done("It's... incredible. Regulars are queueing for The Pigeon Drop."); rep(3); S.pop += 3; S.prestige += 30; news("PUB BARTENDER INVENTS 'THE PIGEON DROP'", f + " has created a drink 'with notes of surprise'. Demand is 'brisk'."); Mgmt.addJoke("The Pigeon Drop", "dave", "gaz"); } else { done("It tastes of cough medicine and regret. But " + f + " is so proud."); s.mood += 10; } }),
+                opt("Put it on the menu (£20 ingredients)", () -> { spend(20); rep(2); S.pop += 2; done("The Pigeon Drop goes on the specials board."); }),
+                opt("Politely decline", () -> { s.mood -= 10; done(f + " pours it down the sink, wounded."); }));
+        } else if (r == 1) {
+            ask(f + "'s Mates Drink Free", "You notice " + f + "'s friends have been getting a LOT of 'accidental' double measures. The stock count is down.",
+                opt("Have a quiet word", () -> { s.mood -= 5; s.rely += 1; for (int i = 0; i < 6; i++) S.stock[i] = Math.max(0, S.stock[i] - 3); done(f + " blushes and promises to behave. Mostly."); }),
+                opt("Dock their wages (£30)", () -> { addMoney(30); s.mood -= 20; done(f + " pays up, sulking."); }),
+                opt("Sack them", () -> { Mgmt.fire(s); }),
+                opt("Let it slide", () -> { for (int i = 0; i < 6; i++) S.stock[i] = Math.max(0, S.stock[i] - 8); s.mood += 10; for (Npc n : S.npcs) if (n.inPub) n.mood += 2; done("Free drinks for friends. The pub loves it. The accountant does not."); }));
+        } else {
+            ask(f + " Has A Job Offer", f + " has been offered a job at the Frog & Trumpet: 'Better hours, and a dental plan.'",
+                opt("Counter-offer: +£15/day", () -> { s.wage += 15; s.mood += 30; done(f + " stays. Wages up."); }),
+                opt("Wish them luck", () -> { Mgmt.fire(s); S.rivalStr += 3; done(f + " leaves for the Frog & Trumpet. The regulars grumble."); S.sat -= 1; }),
+                opt("Promise a promotion (manager)", () -> { s.role = "manager"; s.wage += 25; s.mood += 25; done(f + " is now your manager."); }));
+        }
+    }
+
+    // ---------- special days ----------
+    public static String specialDay() {
+        int m = Sim.monthIdx(), d = (S.day - 1) % 28 + 1;
+        if (m == 1 && d == 28) return "Halloween"; if (m == 2 && d == 5) return "Bonfire Night"; if (m == 3 && d == 24) return "Christmas Eve"; if (m == 3 && d == 28) return "New Year's Eve";
+        if (m == 5 && d == 14) return "Valentine's Day"; if (m == 7 && d == 23) return "St George's Day"; return "";
     }
 
     // ---------- Friday man storyline ----------

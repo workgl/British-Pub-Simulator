@@ -294,10 +294,10 @@ public final class Games {
             JPanel top = new JPanel(new BorderLayout()); top.setOpaque(false); JLabel h = title("PUB QUIZ NIGHT", 24, BRASS2); top.add(h, BorderLayout.WEST); info.setForeground(CREAM); info.setFont(sans(14, true)); top.add(info, BorderLayout.EAST);
             add(top, BorderLayout.NORTH);
             qLabel.setFont(serif(22, true)); qLabel.setForeground(Color.WHITE); qLabel.setVerticalAlignment(SwingConstants.TOP);
-            JPanel mid = new JPanel(new BorderLayout(10, 10)); mid.setOpaque(false); JPanel qp = new JPanel(new BorderLayout()); qp.setOpaque(false); qp.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); qp.add(qLabel, BorderLayout.NORTH);
-            JPanel grid = new JPanel(new GridLayout(2, 2, 10, 10)); grid.setOpaque(false);
+            JPanel mid = new JPanel(new BorderLayout(10, 10)); mid.setOpaque(false); JPanel qp = new JPanel(new BorderLayout(0, 14)); qp.setOpaque(false); qp.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); qp.add(qLabel, BorderLayout.NORTH);
+            JPanel grid = new JPanel(new GridLayout(2, 2, 10, 10)); grid.setOpaque(false); grid.setPreferredSize(new Dimension(500, 170));
             for (int i = 0; i < 4; i++) { final int k = i; ans[i] = btn("", () -> answer(k)); ans[i].setFont(sans(15, true)); grid.add(ans[i]); }
-            qp.add(grid, BorderLayout.CENTER);
+            JPanel gw = new JPanel(new BorderLayout()); gw.setOpaque(false); gw.add(grid, BorderLayout.NORTH); qp.add(gw, BorderLayout.CENTER);
             JPanel rt = new JPanel(); rt.setOpaque(false); rt.setLayout(new BoxLayout(rt, BoxLayout.Y_AXIS)); rt.setPreferredSize(new Dimension(230, 100)); score.setForeground(CREAM); score.setFont(sans(13, false)); rt.add(score);
             JButton hint = btn("Ask Priya for a hint", () -> hint()); rt.add(Box.createVerticalStrut(10)); rt.add(hint);
             mid.add(qp, BorderLayout.CENTER); mid.add(rt, BorderLayout.EAST); add(mid, BorderLayout.CENTER);

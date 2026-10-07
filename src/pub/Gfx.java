@@ -233,7 +233,7 @@ public final class Gfx {
         g.setPaint(new RadialGradientPaint(36, 550, 90, new float[]{0, 1}, new Color[]{new Color(255, 150, 40, 70), new Color(255, 150, 40, 0)})); g.fillRect(0, 460, 160, 160);
     }
     static void fairy(Graphics2D g) {
-        if (!S.decor.contains("fairy")) return;
+        if (!S.decor.contains("fairy") && Sim.monthIdx() != 3 && Events.specialDay().isEmpty()) return;
         for (int i = 0; i < 30; i++) { double x = 8 + i * 31, y = 112 + Math.sin(i * .9) * 4; g.setColor(c(new int[]{0xffd27a, 0xff9ab0, 0x9ae0ff}[i % 3], 150 + (int) (90 * Math.sin(t * 3 + i)))); g.fillOval((int) x, (int) y, 5, 5); }
     }
 

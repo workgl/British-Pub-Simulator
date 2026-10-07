@@ -14,9 +14,9 @@ import static pub.Sim.S;
 /** Main window: HUD, game canvas, side panel, overlays; also the Sim -> UI bridge. */
 public final class GameWindow extends JFrame {
     public static GameWindow I;
-    public static boolean chatter = true;
+    public static boolean chatter = true, soak = false;
     final Hud hud = new Hud(); final GamePanel game = new GamePanel(); final Side side = new Side(); final JLabel status = new JLabel(" ");
-    final JPanel glass = new JPanel(new GridBagLayout());
+    final JPanel glass = new JPanel(new GridBagLayout()) { @Override protected void paintComponent(Graphics g) { g.setColor(new Color(0, 0, 0, 120)); g.fillRect(0, 0, getWidth(), getHeight()); } };
     final Deque<Sim.Choice> queue = new ArrayDeque<>(); final Deque<Runnable> later = new ArrayDeque<>();
     boolean overlayOpen, choiceShowing; Runnable onCloseOverlay;
     int speed = 1; static final double[] SPEEDS = {0, 1, 2, 4};
@@ -34,7 +34,7 @@ public final class GameWindow extends JFrame {
         setContentPane(root);
         glass.setOpaque(false) ; glass.setVisible(false); setGlassPane(glass);
         glass.addMouseListener(new MouseAdapter() {}); glass.addMouseMotionListener(new MouseMotionAdapter() {}); glass.addKeyListener(new KeyAdapter() {});
-        setSize(1380, 860); setMinimumSize(new Dimension(1100, 720)); setLocationRelativeTo(null);
+        Dimension sc = Toolkit.getDefaultToolkit().getScreenSize(); setSize(Math.min(1400, sc.width - 40), Math.min(880, sc.height - 70)); setMinimumSize(new Dimension(1100, 700)); setLocationRelativeTo(null);
         installKeys();
         Sim.L = bridge();
     }
@@ -127,16 +127,16 @@ public final class GameWindow extends JFrame {
                 n.bubbleShout = text.equals(text.toUpperCase()) && text.length() > 6;
                 if (chatter && !text.isEmpty()) side.addChat(n, text);
             }
-            @Override public void choice(Sim.Choice c) { if (overlayOpen) queue.add(c); else showChoice(c); }
+            @Override public void choice(Sim.Choice c) { if (soak) { Events.modalOpen = false; Sim.Opt o = c.opts.get(Util.ri(0, c.opts.size() - 1)); o.run.run(); return; } if (overlayOpen) queue.add(c); else showChoice(c); }
             @Override public void news(News n) { side.addLine("📰 Chronicle (tomorrow): " + n.head, "news"); }
             @Override public void ach(String t) { toastMsg("🏆 " + t, 0xffd54f); }
             @Override public void fx(String type, double x, double y) { if (type.equals("goal")) flash = 1; if (type.equals("shake")) {} }
             @Override public void commentary(String t) { tickerText = t; Audio.speak(t); }
-            @Override public void levelUp(int l) { later.add(() -> open("LEVEL UP!", levelPanel(l))); if (!overlayOpen) pump(); }
-            @Override public void dayEnd(DayRec r) { later.add(() -> open("Closing time", Screens.daySummary(r))); if (!overlayOpen) pump(); Save.save(1); }
-            @Override public void alert(String t) { alertText = t; alertUntil = Sim.rt + 9; Audio.sfx("wrong"); }
+            @Override public void levelUp(int l) { if (soak) return; later.add(() -> open("LEVEL UP!", levelPanel(l))); if (!overlayOpen) pump(); }
+            @Override public void dayEnd(DayRec r) { if (soak) { Screens.daySummary(r); return; } later.add(() -> open("Closing time", Screens.daySummary(r))); if (!overlayOpen) pump(); Save.save(1); }
+            @Override public void alert(String t) { alertText = t; alertUntil = Sim.rt + 9; Audio.sfx("wrong"); String cid = S.flags.get("argue"); if (cid != null) for (Social.Conv c : Social.convs) if (c.id.equals(cid)) { Npc a = Sim.npc(c.a); if (a != null) { Gfx.selId = a.id; side.card.show(a); } } }
             @Override public void morning() { hud.newsPulse = true; toastMsg("☀ Morning, " + Sim.dayName() + ". The Chronicle has arrived (N)."); }
-            @Override public void game(String kind, Npc opp) { startGame(kind, opp); }
+            @Override public void game(String kind, Npc opp) { if (soak) { switch (kind) { case "darts" -> Games.darts(opp, () -> {}); case "pool" -> Games.pool(opp, () -> {}); case "quiz" -> Games.quiz(() -> {}); default -> Games.karaoke(() -> {}); } return; } startGame(kind, opp); }
             @Override public void autosave() { Save.save(1); }
             @Override public void closed() { toastMsg("🔔 Closing time. Customers are drifting home."); }
         };
@@ -162,7 +162,7 @@ public final class GameWindow extends JFrame {
 
     public void showTitle() {
         JPanel p = vbox(); p.setPreferredSize(new Dimension(560, 360));
-        p.add(Screens.inkSerif("🍺 British Pub Simulator", 28)); p.add(Screens.ink("A chaotic, cosy, surprisingly deep life simulator set in a local pub in Westbridge.", 13, false)); p.add(Box.createVerticalStrut(14));
+        p.add(Screens.inkSerif("British Pub Simulator", 30)); p.add(Screens.ink("A chaotic, cosy, surprisingly deep life simulator set in a local pub in Westbridge.", 13, false)); p.add(Box.createVerticalStrut(14));
         JTextField name = new JTextField("The Speckled Pigeon", 24); name.setFont(serif(18, true)); name.setMaximumSize(new Dimension(420, 36)); name.setAlignmentX(Component.LEFT_ALIGNMENT);
         p.add(Screens.ink("Name your pub:", 13, true)); p.add(name); p.add(Box.createVerticalStrut(12));
         BrassButton nb = btn("▶  New game", () -> { String n = name.getText().trim(); closeOverlay(); newGame(n.isEmpty() ? "The Speckled Pigeon" : n); }); nb.setAlignmentX(Component.LEFT_ALIGNMENT); p.add(nb); p.add(Box.createVerticalStrut(8));
@@ -176,7 +176,7 @@ public final class GameWindow extends JFrame {
     //  HUD
     // =====================================================================
     final class Hud extends JPanel {
-        boolean newsPulse; final JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 12)); final List<BrassButton> speedBtns = new ArrayList<>();
+        boolean newsPulse; BrassButton newsBtn = btn("News", () -> { if (!overlayOpen) openNews(); }).small(); final JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 3, 14)); final List<BrassButton> speedBtns = new ArrayList<>();
         Hud() {
             super(new BorderLayout()); setPreferredSize(new Dimension(100, 74)); setOpaque(false);
             btns.setOpaque(false);
@@ -184,10 +184,10 @@ public final class GameWindow extends JFrame {
             for (int i = 0; i < 4; i++) { final int k = i; BrassButton b = btn(sl[i], () -> speed = k).small(); b.setToolTipText("Game speed"); speedBtns.add(b); btns.add(b); }
             btns.add(Box.createHorizontalStrut(10));
             btns.add(btn("Manage", () -> { if (!overlayOpen) open("Manage the pub", Screens.manage(0)); }).small());
-            btns.add(btn("Chronicle", () -> { if (!overlayOpen) openNews(); }).small());
+            btns.add(newsBtn);
             btns.add(btn("Town", () -> { if (!overlayOpen) open("Westbridge", Screens.town()); }).small());
-            btns.add(btn("Regulars", () -> { if (!overlayOpen) open("Regulars Book", Screens.book()); }).small());
-            btns.add(btn("Jukebox", () -> { if (!overlayOpen) open("Jukebox", Screens.jukebox()); }).small());
+            btns.add(btn("Book", () -> { if (!overlayOpen) open("Regulars Book", Screens.book()); }).small());
+            btns.add(btn("Juke", () -> { if (!overlayOpen) open("Jukebox", Screens.jukebox()); }).small());
             btns.add(btn("🏆", () -> { if (!overlayOpen) open("Achievements", Screens.achievements()); }).small());
             btns.add(btn("Menu", () -> { if (!overlayOpen) open("Menu", Screens.menu()); }).small());
             add(btns, BorderLayout.EAST);
@@ -206,14 +206,14 @@ public final class GameWindow extends JFrame {
             int x = 340; g.setFont(serif(24, true)); g.setColor(Color.WHITE); g.drawString(Util.hhmm(S.min), x, 34);
             g.setFont(sans(12, true)); g.setColor(CREAM); g.drawString(Sim.dateStr(), x + 78, 28); g.drawString(Data.SEASONS[Sim.season()] + " · " + new String[]{"Sunny", "Cloudy", "Rain", "Snow"}[S.weather], x + 78, 44);
             boolean open = Sim.isOpen(); g.setColor(open ? new Color(0x66ff99) : new Color(0xff7777)); g.setFont(sans(12, true)); g.drawString(open ? (S.lastOrders ? "LAST ORDERS" : "OPEN") : "CLOSED", x, 54);
-            weatherIcon(g, x + 78 + 120, 26);
+            weatherIcon(g, x + 78 + 150, 30);
             // money & stats
-            x = 600; g.setFont(serif(22, true)); g.setColor(S.money < 0 ? new Color(0xff7777) : new Color(0xf6d776)); g.drawString(Util.money(S.money), x, 34);
+            x = 620; g.setFont(serif(22, true)); g.setColor(S.money < 0 ? new Color(0xff7777) : new Color(0xf6d776)); g.drawString(Util.money(S.money), x, 34);
             g.setFont(sans(11, false)); g.setColor(CREAM); g.drawString("today " + (S.revToday - S.expToday >= 0 ? "+" : "") + Util.money0(S.revToday - S.expToday), x, 50);
-            bar(g, x + 140, 14, "Rep", S.rep, new Color(0xc9973f)); bar(g, x + 140, 30, "Pop", S.pop, new Color(0x4c9a54)); bar(g, x + 140, 46, "Sat", S.sat, new Color(0x4a8fc9));
+            bar(g, x + 130, 14, "Rep", S.rep, new Color(0xc9973f)); bar(g, x + 130, 30, "Pop", S.pop, new Color(0x4c9a54)); bar(g, x + 130, 46, "Sat", S.sat, new Color(0x4a8fc9));
             
             for (int i = 0; i < speedBtns.size(); i++) speedBtns.get(i).tint(i == speed ? new Color(0xffd27a) : BRASS);
-            if (newsPulse && (int) (Sim.rt * 2) % 2 == 0) { g.setColor(new Color(0xff4040)); g.fillOval(w - 480, 10, 12, 12); }
+            if (newsPulse && (int) (Sim.rt * 2) % 2 == 0) { g.setColor(new Color(0xff4040)); g.fillOval(newsBtn.getX() + newsBtn.getWidth() - 8 + btns.getX(), 8, 12, 12); }
             g.dispose();
         }
         void bar(Graphics2D g, int x, int y, String l, double v, Color c) { g.setFont(sans(9, true)); g.setColor(CREAM); g.drawString(l, x, y + 9); g.setColor(new Color(0, 0, 0, 140)); g.fillRoundRect(x + 24, y, 80, 10, 8, 8); g.setColor(c); g.fillRoundRect(x + 24, y, (int) (80 * v / 100), 10, 8, 8); }
@@ -396,7 +396,7 @@ public final class GameWindow extends JFrame {
             if (cur != null && !S.npcs.contains(cur)) cur = null;
             if (cur == null) { name.setText("Click someone"); sub.setText("Select a customer to see how they feel."); where.setText("Amber ! = waiting to be served · red !! = angry"); mem.setText(" "); rel.setText(" "); for (BrassButton b : bmap.values()) b.setEnabled(false); mood.set(0, ""); trust.set(0, ""); drunk.set(0, ""); anger.set(0, ""); return; }
             Npc n = cur;
-            name.setText(n.name); sub.setText(n.age + " · " + n.job + (Data.ti(n.team) >= 0 ? " · " + Data.TEAM_SHORT[Data.ti(n.team)] : "") + " · " + Screens.class.getSimpleName().substring(0, 0) + (n.favName.isEmpty() ? Data.DNAME[Data.di(n.fav)] : n.favName));
+            name.setText(n.name); sub.setText(n.age + " · " + n.job + (Data.ti(n.team) >= 0 ? " · " + Data.TEAM_SHORT[Data.ti(n.team)] : "") + " · " + Mgmt.regLabel(n) + " · " + (n.favName.isEmpty() ? Data.DNAME[Data.di(n.fav)] : n.favName));
             where.setText((n.inPub ? "● " : "○ ") + UI.statusLine(n) + " — " + UI.moodWord(n) + (n.defected ? " (defected!)" : ""));
             mood.set(n.mood, (int) n.mood + ""); trust.set((n.trust + 100) / 2, (int) n.trust + ""); drunk.set(n.drunk, (int) n.drunk + ""); anger.set(n.anger, (int) n.anger + "");
             List<String> fr = new ArrayList<>(), rv = new ArrayList<>(); for (Npc o : S.npcs) if (o != n) { double r = Sim.rel(n.id, o.id); if (S.couples.contains(Sim.pair(n.id, o.id))) fr.add("♥" + Sim.first(o)); else if (r >= 35) fr.add(Sim.first(o)); else if (r <= -35) rv.add(Sim.first(o)); }

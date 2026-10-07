@@ -117,7 +117,7 @@ public final class Social {
         });
     }
 
-    static void speak(Npc n, String t) { say(n, t, 6); S.flags.put("last:" + n.id, t); }
+    static void speak(Npc n, String t) { say(n, t, 4.6); S.flags.put("last:" + n.id, t); }
 
     static void statement(Conv c, Npc sp, Npc li) {
         String topic = c.turn <= 1 || Util.chance(.35) ? pickTopic(sp, li) : c.topic;
@@ -263,7 +263,7 @@ public final class Social {
             addRelBoth(sp.id, li.id, .8);
             return;
         }
-        speak(sp, Util.pick(Data.STORIES));
+        speak(sp, freshStory());
         double belief = li.intel < .5 ? .8 : .45;
         if (Util.chance(belief)) { speak(li, Util.pick("That never happened.", "Stop it. That's not true.", "Pull the other one.")); sp.embar += 3; }
         else { speak(li, Util.pick(Data.R_LAUGH).replace("{n}", first(sp))); sp.mood += 3; li.mood += 3; }
@@ -298,6 +298,14 @@ public final class Social {
         log("💔 " + a.name + " and " + b.name + " have broken up — in public.", "story");
         news("COUPLE SPLIT IN PUB: 'IT WAS LOUD'", "Onlookers say the whole thing took less time than a pint.");
         remember(a, "breakup", -6, a.id, b.id, a.name + " and " + b.name + " broke up"); remember(b, "breakup", -6, b.id, a.id, b.name + " and " + a.name + " broke up");
+    }
+
+    static final Deque<String> recentStories = new ArrayDeque<>();
+    static String freshStory() {
+        String s = null;
+        for (int i = 0; i < 12; i++) { s = Util.pick(Data.STORIES); if (!recentStories.contains(s)) break; }
+        recentStories.addLast(s); while (recentStories.size() > 9) recentStories.pollFirst();
+        return s;
     }
 
     // ---------- gossip ----------

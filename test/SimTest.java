@@ -16,7 +16,7 @@ public class SimTest {
         long t0 = System.currentTimeMillis();
         int target = days * 1440;
         for (int i = 0; i < target; i++) {
-            Sim.advance(1.0, 1.0);
+            Player.x = 200; Player.y = 150; Sim.advance(1.0, 1.0);
             if (i % 5 == 0) Sim.advance(0.5, 0.0001);
             // keep stock topped up
             if (Sim.S.min == 9 * 60) for (int k = 0; k < 7; k++) if (Sim.S.stock[k] < 50) Mgmt.order(k, 40);

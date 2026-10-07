@@ -125,6 +125,7 @@ public final class Mgmt {
             if (s.tags.equals("Always late") && s.present && Util.chance(.4)) { s.present = false; log(s.name + " is running late. Very late.", "staff"); }
         }
         if (staffByRole("bartender") == null && staffByRole("manager") == null) L.alert("Nobody on the bar today — you'll have to serve!");
+        String sp = Events.specialDay(); if (!sp.isEmpty()) { log("Tonight is " + sp + "! Expect a crowd.", "event"); news(sp.toUpperCase() + " IN WESTBRIDGE", "Pubs across town expect a busy night. The Speckled Pigeon is ready, ish."); }
         if (S.quizOn && dow() == 2) log("Quiz night tonight at 20:00.", "event");
         for (Booking b : S.bookings) if (b.day == S.day) log("Tonight: " + b.type + " night!", "event");
         Events.maybeDailyDrama();
@@ -264,7 +265,14 @@ public final class Mgmt {
     static void banter(Npc a, Npc b) { stat("banter"); }
     static void bumpLaugh(Npc a, Npc b) { addRelBoth(a.id, b.id, 1); }
 
+    public static String regLabel(Npc n) {
+        if (n.stranger) return "Newcomer"; if (n.visits >= 80 && n.loyalty >= 85) return "Lifelong regular"; if (n.loyalty >= 72) return "Pillar of the pub"; if (n.visits < 10) return "Occasional"; return "Regular";
+    }
+    static final String[] TIPS = {"Tip: stand behind the bar (top-left) and you'll serve customers automatically.", "Tip: click a person, then 'Talk' - they remember how you treat them.", "Tip: check Manage > Stock before busy nights. Empty taps make people furious.", "Tip: Friday, Saturday and match days are your big earners.", "Tip: click spills on the floor to mop them up.", "Tip: the TV shows live fictional football. Click it for the league table.", "Tip: Linda gossips. Do not tell Linda secrets.", "Tip: book a karaoke or band night in Manage > Events & Ads.", "Tip: some customers will ask you for a job. They might be brilliant."};
+    static int tipIdx;
+
     static void minute() {
+        if (S.day <= 6 && S.min % 150 == 5 && isOpen() && tipIdx < TIPS.length) toast(TIPS[tipIdx++]);
         if (S.songUntil != 0 && S.songUntil <= stamp()) { S.playingGenre = ""; S.song = ""; S.songUntil = 0; }
         if (S.min % 60 == 30) checkAch();
         // pub level crowd effects

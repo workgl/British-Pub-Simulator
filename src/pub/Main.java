@@ -9,12 +9,13 @@ public final class Main {
         System.setProperty("sun.java2d.opengl", "false");
         try { UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName()); } catch (Exception e) { }
         UIManager.put("ToolTip.background", new java.awt.Color(0x2a1a12)); UIManager.put("ToolTip.foreground", UI.CREAM);
-        String shot = null, screen = ""; int day = 5, hour = 20;
+        String shot = null, screen = ""; int day = 5, hour = 20, soak = 0;
         for (int i = 0; i < args.length; i++) {
-            if (args[i].equals("--shot")) shot = args[++i]; else if (args[i].equals("--day")) day = Integer.parseInt(args[++i]); else if (args[i].equals("--hour")) hour = Integer.parseInt(args[++i]); else if (args[i].equals("--screen")) screen = args[++i];
+            if (args[i].equals("--shot")) shot = args[++i]; else if (args[i].equals("--day")) day = Integer.parseInt(args[++i]); else if (args[i].equals("--hour")) hour = Integer.parseInt(args[++i]); else if (args[i].equals("--screen")) screen = args[++i]; else if (args[i].equals("--soak")) soak = Integer.parseInt(args[++i]);
         }
-        final String shotF = shot, screenF = screen; final int dayF = day, hourF = hour;
+        final String shotF = shot, screenF = screen; final int soakF = soak; final int dayF = day, hourF = hour;
         SwingUtilities.invokeAndWait(() -> {
+            if (soakF > 0) { Soak.run(soakF); return; }
             if (shotF == null) Audio.start();
             GameWindow w = new GameWindow();
             w.setVisible(true);
